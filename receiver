@@ -1,0 +1,87 @@
+`timescale 1ns / 1ps
+
+module Rxd(clk,reset,baud_rate,rx,flag,rxdata);
+input baud_rate;
+input rx,reset,clk;
+output reg flag;
+output [7:0]rxdata;
+
+reg [1:0]pstate,nstate;
+reg [3:0]counter=0;
+reg [3:0]n_bits;
+reg [7:0]rxdata_reg;
+parameter idle=2'b0,start=2'b01,data=2'b10,stop=2'b11;
+ 
+ always@(posedge clk)
+ begin
+    if(reset) begin
+    pstate<=0;
+    end
+    else begin 
+        pstate<=nstate;
+        end
+  end
+  always@(posedge clk)
+  begin
+  
+    begin
+    case(nstate)
+    idle: begin
+    flag<=0;
+    if(~rx) begin
+            counter<=0;
+            nstate<=start; end
+          else begin
+            counter<=counter;
+            nstate<=idle; end
+    end
+    start: 
+        if(baud_rate) begin
+            if(counter>=4'd7) begin
+                counter<=0;
+                n_bits<=0;
+                nstate<=data; end
+            else begin
+                counter<=counter+1;
+                nstate<=start; end
+          end
+          else
+                nstate<=start;
+                
+     data:
+            if(baud_rate)begin
+                if(counter==4'd15)
+                begin
+                    counter<=0;
+                    rxdata_reg={rx,rxdata[7:1]};
+                    if(n_bits==4'd7)
+                        nstate=stop;
+                    else begin
+                        n_bits=n_bits+1;
+                        nstate=data; end
+                end
+                else begin
+                    counter=counter+1;
+                    nstate=data; end
+            end
+                        
+      stop:
+                if(baud_rate) begin
+                    if(counter==4'd15)
+                    begin
+                        flag=1;
+                        nstate<=idle;
+                        end
+                     else begin
+                        counter=counter+1;
+                        nstate<=stop;
+                         end
+                         end
+                 else
+                    nstate<=stop;
+       default:nstate<=idle;
+       endcase
+end
+end
+assign rxdata=rxdata_reg;
+endmodule
