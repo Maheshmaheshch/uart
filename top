@@ -1,0 +1,15 @@
+module top(reset,start,clk,tx,done,tx_data,led);
+input clk,start,reset;
+output done;
+input [7:0]tx_data;
+output [7:0]led;
+output tx;
+wire baud_r,out_start;
+baud_rate B(.clk(clk),.reset(reset),.b_rtick(baud_r));
+
+button B2(.clk(clk),.in(start),.out(out_start));
+
+Rxd R(.clk(clk),.reset(reset),.baud_rate(baud_r),.rx(rx),.flag(flag),.rxdata(rx_data));
+
+ assign led=tx_data;
+endmodule
